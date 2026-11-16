@@ -1,0 +1,18 @@
+{
+    "idf.currentSetup": "C:/Espressif/frameworks/esp-idf-v5.4/",
+    "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
+    "clangd.arguments": [
+      "--background-index",
+      "--query-driver=**",
+      "--compile-commands-dir=d:\\Projects\\macropad3_rework\\build"
+    ],
+    "idf.flashType": "UART",
+    "idf.port": "COM22",
+    "idf.openOcdConfigs": [
+      "board/esp32s3-bridge.cfg"
+    ],
+    "idf.customExtraVars": {
+      "IDF_CCACHE_ENABLE": "1",
+      "IDF_TARGET": "esp32s3"
+    }
+}

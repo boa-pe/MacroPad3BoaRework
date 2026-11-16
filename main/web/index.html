@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacroPad 3</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--fg:#1d2330;--mut:#667085;--line:#d9dde3;--acc:#17864a;--ok:#1a9a5b;--warn:#c47f00;--key:#eef1f5;--keyon:#ffd34d}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--card:#1c1f24;--fg:#e7e9ee;--mut:#98a1b2;--line:#2e333b;--acc:#25904f;--ok:#3cc47c;--warn:#e0a526;--key:#262a31;--keyon:#b8901a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+header h1{font-size:18px;margin:0 8px 0 0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--mut)}
+.chip.on{color:var(--fg)}.chip.on i{background:var(--ok)}
+main{max-width:980px;margin:0 auto;padding:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tab{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--fg);cursor:pointer;font:inherit}
+.tab .dot{width:12px;height:12px;border-radius:50%;border:1px solid #0003}
+.tab.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.tab .act{font-size:11px;color:var(--ok)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}
+label.inl{flex-direction:row;align-items:center;gap:6px;color:var(--fg)}
+input,select,textarea,button{font:inherit;color:var(--fg)}
+input[type=text],input[type=password],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+input[type=color]{width:48px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
+button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button.danger{background:#c43c3c}
+button:disabled{opacity:.5;cursor:default}
+.pad{display:flex;flex-wrap:wrap;align-items:center;gap:20px 36px}
+.keys3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:min(100%,420px)}
+.key{position:relative;aspect-ratio:1;display:flex;flex-direction:column;border:1px solid var(--line);border-bottom-width:4px;border-radius:12px;
+  background:var(--key);padding:10px;cursor:pointer;text-align:left;color:var(--fg);font:inherit;min-width:0}
+.key b{font-size:15px;color:var(--mut);font-weight:700}
+.key span{margin-top:auto;font-size:14px;line-height:1.25;word-break:break-word}
+/* same selector look as the encoder pieces: green edge on hover/focus, thick green edge when selected */
+.key{outline:none;transition:border-color .12s,box-shadow .12s,background .12s}
+.key:hover,.key:focus-visible{border-color:var(--acc)}
+.key.sel{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
+.key.down{background:var(--keyon)}
+.knobwrap{display:flex;justify-content:center;width:min(100%,330px)}
+.knob{width:100%;max-width:330px;aspect-ratio:1;height:auto;overflow:visible}
+.knob .rim{fill:none;stroke:var(--line);stroke-width:2}
+.seg{cursor:pointer;outline:none}
+.seg path,.seg .cap{fill:var(--key);stroke:var(--line);stroke-width:1.5;transition:fill .12s}
+.seg:hover path,.seg:hover .cap,.seg:focus-visible path,.seg:focus-visible .cap{stroke:var(--acc)}
+.seg.sel path,.seg.sel .cap{stroke:var(--acc);stroke-width:4}
+.seg.down path,.seg.down .cap,.seg.flash path{fill:var(--keyon)}
+.seg foreignObject{pointer-events:none;overflow:visible}
+/* labels inside the knob (SVG user units: the knob is drawn 200 units wide) */
+.seglbl{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;
+  color:var(--fg);font:600 8.5px/1.15 system-ui,sans-serif;overflow:hidden}
+.seglbl i{font-style:normal;font-size:7px;letter-spacing:.06em;color:var(--mut);font-weight:700}
+.seglbl b{font-size:15px;line-height:1;color:var(--mut);font-weight:600}
+.seglbl span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.seg.down .seglbl,.seg.flash .seglbl{color:#1d2330}
+.editor{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+.mods{display:flex;flex-wrap:wrap;gap:4px 14px}
+.hint{font-size:13px;color:var(--mut);margin:6px 0 0}
+.grow{flex:1 1 220px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.msg{font-size:13px;color:var(--ok);min-height:1em}
+.msg.err{color:#d14343}
+table{border-collapse:collapse;font-size:14px}td{padding:2px 12px 2px 0}
+.count{font-weight:400;font-size:13px;color:var(--mut)}
+.net{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:8px}
+.net input{width:100%}
+.net .live{font-size:12px;color:var(--ok);grid-column:1/-1;margin-top:-4px}
+.ib.del{width:34px;height:34px;background:transparent;color:var(--fg);border:1px solid var(--line)}
+.ib.del:hover{color:#d14343;border-color:#d14343}
+.combo{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:200px;min-height:40px;padding:6px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--fg);text-align:left}
+.combo:hover{border-color:var(--acc)}
+kbd{display:inline-block;font:600 13px system-ui,sans-serif;padding:3px 8px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--card)}
+.plus{color:var(--mut)}.none{color:var(--mut);font-size:13px}
+.kbpanel{margin-top:4px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg);overflow-x:auto;
+  --u:max(24px,min(38px,calc((min(100vw,980px) - 110px) / 23)))}
+.kbhead{display:flex;align-items:center;gap:10px;min-height:40px;margin-bottom:10px}
+.kbhead .sel{display:flex;flex-wrap:wrap;align-items:center;gap:4px;flex:1}
+.kbhead .state{font-size:12px;color:var(--warn)}
+.kbhead .icons{display:flex;gap:6px;margin-left:auto}
+.kbhead .icons[hidden]{display:none}
+#kb:focus-within{outline:none}
+.kbpanel.changed{border-color:var(--warn)}
+.ib{width:38px;height:38px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.ib svg{width:20px;height:20px;stroke:currentColor;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ib.ok{background:var(--ok);color:#fff}.ib.cancel{background:transparent;color:var(--fg);border:1px solid var(--line)}
+#kb{position:relative;margin:0 auto}
+.kk{position:absolute;margin:2px;padding:0 2px;background:var(--key);color:var(--fg);border:1px solid var(--line);border-bottom-width:3px;border-radius:6px;
+  font:600 calc(var(--u) * .3) system-ui,sans-serif;overflow:hidden;white-space:nowrap;cursor:pointer}
+.kk:hover{border-color:var(--acc)}
+.kk.mod{color:var(--mut)}
+.kk.sys{color:var(--warn)}
+.kk.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.deck{display:flex;flex-wrap:wrap;gap:12px 18px}
+.mgroup{display:flex;flex-direction:column;gap:6px}
+.mgname{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.mkeys{display:flex;gap:6px}
+.mk{width:74px;height:70px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  background:var(--key);color:var(--fg);border:1px solid var(--line);border-bottom-width:3px;border-radius:8px;cursor:pointer}
+.mk span{font-size:11px;line-height:1.15;text-align:center}
+.mk:hover{border-color:var(--acc)}
+.mk.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.mi{width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mi.sm{width:16px;height:16px;vertical-align:-3px;margin-right:5px}
+.mkbd{display:inline-flex;align-items:center}
+#lockBtn{margin-left:auto;padding:5px 12px;font-size:13px}
+.authbg{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.authbg[hidden]{display:none}
+body.boot header,body.boot main{visibility:hidden}
+.authcard{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
+.authcard h2{font-size:19px;margin:0 0 6px}
+.authcard p{margin:0 0 16px;color:var(--mut);font-size:14px}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px;margin:0 auto 14px;padding:12px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.akey{aspect-ratio:1;border-radius:10px;background:var(--key);border:1px solid var(--line);border-bottom-width:4px;display:flex;align-items:center;justify-content:center;
+  font:700 30px system-ui,sans-serif;color:var(--fg);transition:background .15s}
+.akey.sel{background:var(--card);border-color:var(--acc);color:var(--acc)}
+.akey.next{box-shadow:0 0 0 3px var(--acc);animation:pulse 1s infinite}
+.akey.done{background:var(--ok);border-color:var(--ok);color:#fff}
+@keyframes pulse{50%{box-shadow:0 0 0 6px transparent}}
+.ameta{display:flex;justify-content:center;gap:14px;font-size:13px;color:var(--mut);min-height:20px}
+.amsg{min-height:22px;margin:10px 0 0;font-size:14px}.amsg.err{color:#d14343}
+@media (prefers-reduced-motion:reduce){.akey.next{animation:none}}
+@media (max-width:640px){.pad{justify-content:center}.keys3{width:100%}}
+</style>
+</head>
+<body class="boot">
+<header>
+  <h1>MacroPad 3</h1>
+  <span class="chip" id="cUsb"><i></i>USB</span>
+  <span class="chip" id="cBle"><i></i>Bluetooth</span>
+  <span class="chip" id="cWifi"><i></i>Wi-Fi</span>
+  <span class="chip" id="cProf">Profile –</span>
+  <button class="sec" id="lockBtn" title="End this session">Lock</button>
+</header>
+
+<div class="authbg" id="auth" hidden>
+  <div class="authcard" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <h2 id="authTitle">Confirm it's your macropad</h2>
+    <p>Press these keys on the device, in the order shown. The LED flashes white while it is waiting; the presses are not sent to your computer.</p>
+    <div class="agrid" id="authGrid" aria-live="polite"></div>
+    <div class="ameta"><span id="authProg"></span><span id="authTtl"></span></div>
+    <p class="amsg" id="authMsg"></p>
+    <button id="authNew" hidden>Show a new code</button>
+  </div>
+</div>
+<main>
+<section id="setupSec" hidden>
+  <h2>Wi-Fi setup</h2>
+  <p class="hint" style="margin-top:0">The macropad is in setup mode. Pick your network; it reboots and joins it, then the UI is at <b>http://<span class="hn">macropad</span>.local</b> or its IP address.</p>
+</section>
+
+<section>
+  <h2>Profiles</h2>
+  <div class="tabs" id="tabs"></div>
+  <div class="row">
+    <label class="grow">Name<input type="text" id="pName" maxlength="19"></label>
+    <label>Colour<input type="color" id="pColor"></label>
+    <label>Scan rate<select id="pScan"></select></label>
+    <button class="sec" id="pActivate">Make active</button>
+  </div>
+  <div class="pad" id="pad"></div>
+  <div class="editor" id="editor"></div>
+  <div class="bar" style="margin-top:14px">
+    <button id="pSave">Save profile</button>
+    <button class="sec" id="pRevert">Revert</button>
+    <button class="sec" id="pDefault">Reset to default</button>
+    <span class="msg" id="pMsg"></span>
+  </div>
+  <p class="hint">On the device: <b>long-press</b> the encoder button to choose a profile. Turn the encoder to browse (the LED blinks the profile's colour), then <b>short-press</b> to activate it, or press <b>key 1–9</b> to jump straight to that profile. Another long press cancels. A short press outside this mode sends the encoder button's own action.</p>
+</section>
+
+<section>
+  <h2>Device</h2>
+  <div class="row">
+    <label>Debounce (ms)<input type="number" id="gDeb" min="1" max="30" style="width:90px"></label>
+    <label>LED brightness<input type="range" id="gBri" min="1" max="255"></label>
+    <label>Encoder counts / detent<select id="gSteps"><option>1</option><option>2</option><option>4</option></select></label>
+    <label class="inl"><input type="checkbox" id="gRev">Reverse encoder</label>
+  </div>
+  <div class="row">
+    <label class="grow">Bluetooth name<input type="text" id="gBle" maxlength="29"></label>
+    <label class="grow">Host name (.local, after reboot)<input type="text" id="gHost" maxlength="31"></label>
+    <label class="inl"><input type="checkbox" id="gWifi">Wi-Fi enabled</label>
+  </div>
+  <div class="bar"><button id="gSave">Save device settings</button><span class="msg" id="gMsg"></span></div>
+  <p class="hint">With Wi-Fi disabled the radio is free for Bluetooth. The setup access point starts only when no network is saved, or when key 1 is held while plugging in.</p>
+</section>
+
+<section>
+  <h2>Wi-Fi networks <span class="count" id="wCount"></span></h2>
+  <div id="wNets"></div>
+  <div class="row" style="margin-top:4px">
+    <label class="grow">Add from scan<select id="wList"><option value="">– press Scan –</option></select></label>
+    <button class="sec" id="wScan">Scan</button>
+    <button class="sec" id="wAdd">Add manually</button>
+  </div>
+  <div class="bar"><button id="wSave">Save networks</button><span class="msg" id="wMsg"></span></div>
+  <p class="hint">Up to 5 networks. The strongest one in range is used and the others are fallbacks; networks not seen in a scan (hidden ones) are tried last. Stored passwords are never shown – leave the field empty to keep one.</p>
+</section>
+
+<section>
+  <h2>Status &amp; maintenance</h2>
+  <table id="stat"></table>
+  <div class="bar" style="margin-top:12px">
+    <button class="sec" id="mExport">Export config</button>
+    <input type="file" id="mImport" accept=".json" hidden><button class="sec" onclick="document.getElementById('mImport').click()">Import config</button>
+    <button class="sec" id="mForget">Forget Bluetooth pairings</button>
+    <button class="sec" id="mReboot">Reboot</button>
+    <button class="danger" id="mFactory">Factory reset</button>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <label class="grow">Firmware update (.bin)<input type="file" id="mFw" accept=".bin"></label>
+    <button id="mOta">Upload</button>
+  </div>
+  <span class="msg" id="mMsg"></span>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const KEY_NAMES=['1','2','3','4','5','6','7','8','9'];
+const KEY_ENC_CCW=9, KEY_ENC_CW=10, KEY_ENC_SW=11;
+const ENC=[{i:9,n:'Encoder rotate left'},{i:11,n:'Encoder press'},{i:10,n:'Encoder rotate right'}];
+const MODS=[[1,'Ctrl'],[2,'Shift'],[4,'Alt'],[8,'Win/Cmd'],[16,'R-Ctrl'],[32,'R-Shift'],[64,'AltGr'],[128,'R-Win']];
+const HID={};
+'abcdefghijklmnopqrstuvwxyz'.split('').forEach((c,i)=>HID[4+i]=c.toUpperCase());
+'1234567890'.split('').forEach((c,i)=>HID[30+i]=c);
+Object.assign(HID,{40:'Enter',41:'Esc',42:'Backspace',43:'Tab',44:'Space',45:'-',46:'=',47:'[',48:']',49:'\\',50:'# (non-US)',51:';',52:"'",53:'`',54:',',55:'.',56:'/',57:'Caps Lock',
+70:'Print Screen',71:'Scroll Lock',72:'Pause',73:'Insert',74:'Home',75:'Page Up',76:'Delete',77:'End',78:'Page Down',79:'Right',80:'Left',81:'Down',82:'Up',83:'Num Lock',
+84:'Num /',85:'Num *',86:'Num -',87:'Num +',88:'Num Enter',99:'Num .',100:'\\ (non-US)',101:'Menu'});
+for(let i=0;i<12;i++)HID[58+i]='F'+(i+1);
+for(let i=0;i<9;i++)HID[89+i]='Num '+(i+1);HID[98]='Num 0';
+for(let i=0;i<12;i++)HID[104+i]='F'+(13+i);
+/* media (consumer control) keys: [usage, name, icon path(s) in a 24x24 box] grouped like a media deck */
+const SPK='M4 9h3l5-4v14l-5-4H4z';
+const MEDIA_GROUPS=[
+ ['Playback',[[0xB6,'Previous track','<path d="M6 5v14M18 6l-9 6 9 6z"/>'],[0xCD,'Play / pause','<path d="M5 5l8 7-8 7zM16 5v14M20 5v14"/>'],
+   [0xB5,'Next track','<path d="M18 5v14M6 6l9 6-9 6z"/>'],[0xB7,'Stop','<rect x="6" y="6" width="12" height="12" rx="1.5"/>']]],
+ ['Volume',[[0xEA,'Volume down',`<path d="${SPK}M16 9.5a3.5 3.5 0 0 1 0 5"/>`],[0xE2,'Mute',`<path d="${SPK}M16 9.5l5 5M21 9.5l-5 5"/>`],
+   [0xE9,'Volume up',`<path d="${SPK}M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"/>`]]],
+ ['Display',[[0x70,'Brightness down','<circle cx="12" cy="12" r="4"/><path d="M12 4.5v1M12 18.5v1M4.5 12h1M18.5 12h1M6.7 6.7l.7.7M16.6 16.6l.7.7M6.7 17.3l.7-.7M16.6 7.4l.7-.7"/>'],
+   [0x6F,'Brightness up','<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>']]],
+ ['Apps',[[0x192,'Calculator','<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>'],
+   [0x194,'File explorer','<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'],
+   [0x18A,'Mail','<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'],
+   [0x221,'Search','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>']]],
+ ['Browser',[[0x224,'Back','<path d="M19 12H5M11 6l-6 6 6 6"/>'],[0x225,'Forward','<path d="M5 12h14M13 6l6 6-6 6"/>'],
+   [0x227,'Refresh','<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>'],[0x223,'Home','<path d="M3 11l9-7 9 7M5 10v10h14V10"/>']]],
+];
+const MEDIA=MEDIA_GROUPS.flatMap(([,l])=>l);
+const mediaIcon=(icon,cls='')=>`<svg class="mi${cls}" viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>`;
+function range(a,b){const r=[];for(let i=a;i<=b;i++)r.push(i);return r}
+
+let cfg=null, cur=0, edit=null, selKey=0, status={};
+
+async function raw(path,opt){const r=await fetch(path,opt);const t=await r.text();let j={};try{j=JSON.parse(t)}catch(e){}return {r,j}}
+async function api(path,opt){const {r,j}=await raw(path,opt);
+  if(r.status===401){if(appStarted&&!authShown())authNote='Your session ended. Enter a new code to continue.';showAuth();throw new Error('verification required')}
+  if(!r.ok)throw new Error(j.error||r.statusText);return j}
+
+/* ---------- physical-presence verification ---------- */
+let authId=null,authKeys=[],authTimer=null,appStarted=false;
+function authShown(){return !$('auth').hidden}
+function setAuthMsg(t,err){$('authMsg').textContent=t||'';$('authMsg').className='amsg'+(err?' err':'')}
+function renderAuthGrid(progress){
+  const g=$('authGrid');g.innerHTML='';
+  for(let k=0;k<9;k++){
+    const d=document.createElement('div');d.className='akey';
+    const pos=authKeys.indexOf(k);
+    if(pos>=0){
+      d.classList.add('sel');
+      if(pos<progress){d.classList.add('done');d.textContent='✓';d.setAttribute('aria-label',`key ${pos+1} pressed`)}
+      else{d.textContent=pos+1;if(pos===progress&&authId)d.classList.add('next')}
+    }
+    g.appendChild(d);
+  }
+  $('authProg').textContent=authKeys.length?`${Math.min(progress,4)} of 4`:'';
+}
+function showAuth(){
+  document.body.classList.remove('boot');
+  if(authShown())return;
+  authKeys=[];renderAuthGrid(0); /* blank keypad right away; numbers appear with the code */
+  $('auth').hidden=false;document.body.style.overflow='hidden';
+  newChallenge();
+}
+async function newChallenge(){
+  clearTimeout(authTimer);authId=null;$('authNew').hidden=true;setAuthMsg(authNote);authNote='';$('authTtl').textContent='';
+  const {r,j}=await raw('/api/auth/start',{method:'POST'}).catch(()=>({r:{ok:false,status:0},j:{}}));
+  if(!r.ok){
+    if(r.status===429){authTimer=setTimeout(newChallenge,300);return} /* previous code of a reloaded page still pending: retry quietly */
+    setAuthMsg('The macropad is not reachable.',1);$('authNew').hidden=false;return;
+  }
+  authId=j.id;authKeys=j.keys;renderAuthGrid(0);authPoll();
+}
+async function authPoll(){
+  if(!authId)return;
+  const id=authId;
+  const {r,j}=await raw('/api/auth/status?id='+id).catch(()=>({r:{ok:false},j:{}}));
+  if(id!==authId)return;
+  if(!r.ok){authTimer=setTimeout(authPoll,1000);return}
+  renderAuthGrid(j.progress);
+  if(j.state==='pending'){$('authTtl').textContent=`${j.ttl} s left`;authTimer=setTimeout(authPoll,200);return}
+  authId=null;$('authTtl').textContent='';
+  if(j.state==='ok'){
+    renderAuthGrid(4);setAuthMsg('Verified');
+    setTimeout(()=>{$('auth').hidden=true;document.body.style.overflow='';startApp()},400);return;
+  }
+  renderAuthGrid(j.progress);
+  setAuthMsg({failed:'Wrong key. The keyboard works normally again.',expired:'Time is up. The keyboard works normally again.',
+    cancelled:'Cancelled on the device (encoder button).',none:'This code was replaced by another browser.'}[j.state]||'Not verified.',1);
+  $('authNew').hidden=false;$('authNew').focus();
+}
+function releaseChallenge(){if(authId){navigator.sendBeacon('/api/auth/cancel?id='+authId);authId=null;clearTimeout(authTimer)}}
+/* don't keep the keyboard captured by a tab nobody is looking at */
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&authId){releaseChallenge();setAuthMsg('Paused while the page was hidden.');$('authNew').hidden=false}});
+window.addEventListener('pagehide',releaseChallenge);
+$('authNew').onclick=newChallenge;
+/* ---------- lock after 10 minutes without user activity ----------
+ * Background status polling doesn't count. Clicks, typing, scrolling and edits do; they are
+ * reported to the device (at most every 30 s) so its own 10-minute timer is restarted as well. */
+const IDLE_MS=10*60*1000, PING_MS=30*1000;
+let authNote='', lastAct=Date.now(), lastPing=Date.now();
+['pointerdown','keydown','wheel','input','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{lastAct=Date.now()},{capture:true,passive:true}));
+async function lockNow(note){
+  authNote=note;
+  await raw('/api/logout',{method:'POST'}).catch(()=>{});
+  showAuth();
+}
+setInterval(()=>{
+  if(!appStarted||authShown())return;
+  const now=Date.now();
+  if(now-lastAct>=IDLE_MS){lockNow('Locked after 10 minutes of inactivity.');return}
+  if(lastAct>lastPing&&now-lastPing>=PING_MS){lastPing=now;raw('/api/ping',{method:'POST'}).catch(()=>{})}
+},5000);
+
+function startApp(){
+  lastAct=lastPing=Date.now();
+  load().catch(e=>msg('pMsg','Could not load config: '+e.message,1));
+  if(!appStarted){appStarted=true;poll()}
+}
+$('lockBtn').onclick=async()=>{await post('/api/logout',{}).catch(()=>{});showAuth()};
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+function msg(id,t,err){const e=$(id);e.textContent=t;e.className='msg'+(err?' err':'');if(t&&!err)setTimeout(()=>{if(e.textContent===t)e.textContent=''},3000)}
+
+function actLabel(a){
+  if(!a||a.t===0)return '—';
+  if(a.t===1){const m=MODS.filter(([b])=>a.m&b).map(([,n])=>n);if(a.k)m.push(HID[a.k]||('0x'+a.k.toString(16)));return m.join('+')||'—'}
+  if(a.t===2){const f=MEDIA.find(([u])=>u===a.u);return '♪ '+(f?f[1]:'0x'+a.u.toString(16))}
+  if(a.t===3)return '“'+(a.s.length>18?a.s.slice(0,18)+'…':a.s)+'”';
+  if(a.t===4)return '⏻ '+(SYS[a.u]||'?');
+  return '?';
+}
+
+function renderTabs(){
+  const t=$('tabs');t.innerHTML='';
+  cfg.profiles.forEach((p,i)=>{
+    const b=document.createElement('button');b.className='tab'+(i===cur?' sel':'');
+    b.innerHTML=`<span class="dot" style="background:${p.color}"></span>${i+1}. ${esc(p.name)}`+(i===cfg.global.active?' <span class="act">● active</span>':'');
+    b.onclick=()=>{cur=i;edit=clone(cfg.profiles[i]);selKey=0;renderAll()};t.appendChild(b);
+  });
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+
+/* ring segment of the encoder knob between angles a1..a2 (degrees, 0 = right, clockwise) */
+function segPath(a1,a2,R=98,r=46){
+  const pt=(rad,a)=>`${(rad*Math.cos(a*Math.PI/180)).toFixed(2)} ${(rad*Math.sin(a*Math.PI/180)).toFixed(2)}`;
+  return `M${pt(R,a1)}A${R} ${R} 0 0 1 ${pt(R,a2)}L${pt(r,a2)}A${r} ${r} 0 0 0 ${pt(r,a1)}Z`;
+}
+function renderPad(){
+  const pad=$('pad');pad.innerHTML='';
+  const select=i=>{selKey=i;renderPad();renderEditor()};
+  /* 3x3 square keys */
+  const grid=document.createElement('div');grid.className='keys3';
+  KEY_NAMES.forEach((n,i)=>{
+    const d=document.createElement('button');d.type='button';d.className='key'+(i===selKey?' sel':'');d.dataset.k=i;
+    d.setAttribute('aria-label',`Key ${n}: ${actLabel(edit.keys[i])}`);
+    d.innerHTML=`<b>${n}</b><span>${esc(actLabel(edit.keys[i]))}</span>`;d.onclick=()=>select(i);grid.appendChild(d);
+  });
+  pad.appendChild(grid);
+  /* round encoder: left / right ring segments = rotation, centre cap = push button */
+  const lbl=k=>esc(actLabel(edit.keys[k]));
+  /* mapped function written inside each piece of the knob */
+  const inner=(icon,k)=>`<div xmlns="http://www.w3.org/1999/xhtml" class="seglbl">${icon}<span>${lbl(k)}</span></div>`;
+  const seg=(k,a1,a2,bx,icon,name)=>`<g class="seg${selKey===k?' sel':''}" data-k="${k}" role="button" tabindex="0" aria-label="${name}: ${lbl(k)}">
+      <path d="${segPath(a1,a2)}"/><foreignObject x="${bx}" y="-40" width="44" height="80">${inner(`<b>${icon}</b>`,k)}</foreignObject></g>`;
+  const w=document.createElement('div');w.className='knobwrap';
+  w.innerHTML=`<svg class="knob" viewBox="-100 -100 200 200" aria-label="Rotary encoder">
+      <circle class="rim" r="99.5"/>
+      ${seg(KEY_ENC_CCW,114,246,-93,'↺','Encoder rotate left')}
+      ${seg(KEY_ENC_CW,-66,66,49,'↻','Encoder rotate right')}
+      <g class="seg ctr${selKey===KEY_ENC_SW?' sel':''}" data-k="${KEY_ENC_SW}" role="button" tabindex="0" aria-label="Encoder press: ${lbl(KEY_ENC_SW)}">
+        <circle class="cap" r="42"/>
+        <foreignObject x="-30" y="-27" width="60" height="54">${inner('<i>PRESS</i>',KEY_ENC_SW)}</foreignObject></g>
+    </svg>`;
+  w.querySelectorAll('[data-k]').forEach(el=>{
+    el.onclick=()=>select(+el.dataset.k);
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(+el.dataset.k)}};
+  });
+  pad.insertBefore(w,grid); /* encoder sits left of the keys, like on the device */
+  showPressed();
+}
+/* briefly light a rotation segment when the encoder turns */
+function flashSeg(k){document.querySelectorAll(`.seg[data-k="${k}"]`).forEach(g=>{g.classList.add('flash');clearTimeout(g._t);g._t=setTimeout(()=>g.classList.remove('flash'),220)})}
+
+function renderEditor(){
+  const a=edit.keys[selKey], ed=$('editor');
+  const name=selKey<9?'Key '+(selKey+1):ENC.find(x=>x.i===selKey).n;
+  let h=`<div class="row"><label>${esc(name)} action<select id="eType">
+    <option value="0">None</option><option value="1">Key / shortcut</option><option value="2">Media key</option><option value="3">Type text</option></select></label></div>`;
+  if(a.t===1||a.t===4){
+    h+=`<div class="kbpanel" id="kbPanel">
+      <div class="kbhead">
+        <div class="sel" id="kbSel"></div>
+        <div class="icons" id="kbIcons" hidden>
+          <button type="button" class="ib ok" id="kbOk" title="Accept change" aria-label="Accept change"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></button>
+          <button type="button" class="ib cancel" id="kbCancel" title="Discard change" aria-label="Discard change"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
+      <div id="kb" tabindex="0" aria-label="Keyboard: click a key and modifiers, or press the combination on your keyboard"></div>
+    </div>
+    <p class="hint">Click a key and any modifiers (click again to deselect), or click the keyboard and press the combination on your own keyboard. ✓ accepts, ✗ (or Esc) discards. ${selKey>=9&&selKey!==11?'Encoder steps send a short tap.':'Held as long as the physical key is held (the host repeats it).'}</p>`;
+  }else if(a.t===2){
+    h+=`<div class="kbpanel" id="mdPanel">
+      <div class="kbhead">
+        <div class="sel" id="mdSel"></div>
+        <div class="icons" id="mdIcons" hidden>
+          <button type="button" class="ib ok" id="mdOk" title="Accept change" aria-label="Accept change"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></button>
+          <button type="button" class="ib cancel" id="mdCancel" title="Discard change" aria-label="Discard change"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
+      <div class="deck">${MEDIA_GROUPS.map(([g,l])=>`<div class="mgroup"><div class="mgname">${g}</div><div class="mkeys">${
+        l.map(([u,n,ic])=>`<button type="button" class="mk" data-u="${u}" title="${n}" aria-label="${n}">${mediaIcon(ic)}<span>${n}</span></button>`).join('')}</div></div>`).join('')}</div>
+    </div>
+    <p class="hint">Click a function, then ✓ to accept or ✗ to discard. Held as long as the physical key is held${selKey>=9&&selKey!==11?' (encoder steps send a short tap)':''}.</p>`;
+  }else if(a.t===3){
+    h+=`<div class="row"><label class="grow">Text (max 47 chars, US layout, \\n = Enter)<textarea id="eText" rows="2" maxlength="47"></textarea></label></div>`;
+  }
+  ed.innerHTML=h;
+  $('eType').value=a.t===4?1:a.t;
+  $('eType').onchange=e=>{const t=+e.target.value;edit.keys[selKey]={t,m:0,k:0,u:t===2?0xE9:0,s:''};renderPad();renderEditor()};
+  pick=null;mpick=null;
+  if(a.t===1||a.t===4){
+    pick=pickFrom(a);
+    buildKeyboard();refreshPicker();
+    $('kbOk').onclick=()=>commitPick(true);
+    $('kbCancel').onclick=()=>commitPick(false);
+  }else if(a.t===2){
+    mpick={target:a,u:a.u};refreshMedia();
+    $('mdPanel').querySelectorAll('.mk').forEach(b=>b.onclick=()=>{mpick.u=+b.dataset.u;refreshMedia()});
+    $('mdOk').onclick=()=>commitMedia(true);
+    $('mdCancel').onclick=()=>commitMedia(false);
+  }
+  else if(a.t===3){$('eText').value=a.s.replace(/\n/g,'\\n');$('eText').oninput=e=>{a.s=e.target.value.replace(/\\n/g,'\n').slice(0,47);renderPad()}}
+}
+
+/* system control usages (power keys on the keyboard image) */
+const SYS={0x81:'Power off',0x82:'Sleep',0x83:'Wake up'};
+function comboHtml(m,k,s){
+  if(s)return `<kbd>⏻ ${SYS[s]}</kbd>`;
+  const parts=MODS.filter(([b])=>m&b).map(([,n])=>n);
+  if(k)parts.push(HID[k]||('0x'+k.toString(16)));
+  return parts.length?parts.map(p=>`<kbd>${esc(p)}</kbd>`).join('<span class="plus">+</span>'):'<span class="none">nothing selected</span>';
+}
+
+/* ---------- graphical key picker ---------- */
+/* layout in key units: [label, code | 'm'+modifierBit | null (gap), width, height] */
+const KB_ROWS=[
+  {x:2,y:0,keys:[['F13',104],['F14',105],['F15',106],['F16',107],[null,null,.5],['F17',108],['F18',109],['F19',110],['F20',111],[null,null,.5],['F21',112],['F22',113],['F23',114],['F24',115]]},
+  {x:15.5,y:0,keys:[['ISO #',50,1.5],['ISO \\',100,1.5]]},
+  {x:0,y:1.25,keys:[['Esc',41],[null,null,1],['F1',58],['F2',59],['F3',60],['F4',61],[null,null,.5],['F5',62],['F6',63],['F7',64],['F8',65],[null,null,.5],['F9',66],['F10',67],['F11',68],['F12',69]]},
+  {x:0,y:2.5,keys:[['`',53],['1',30],['2',31],['3',32],['4',33],['5',34],['6',35],['7',36],['8',37],['9',38],['0',39],['-',45],['=',46],['Backspace',42,2]]},
+  {x:0,y:3.5,keys:[['Tab',43,1.5],['Q',20],['W',26],['E',8],['R',21],['T',23],['Y',28],['U',24],['I',12],['O',18],['P',19],['[',47],[']',48],['\\',49,1.5]]},
+  {x:0,y:4.5,keys:[['Caps',57,1.75],['A',4],['S',22],['D',7],['F',9],['G',10],['H',11],['J',13],['K',14],['L',15],[';',51],["'",52],['Enter',40,2.25]]},
+  {x:0,y:5.5,keys:[['Shift','m2',2.25],['Z',29],['X',27],['C',6],['V',25],['B',5],['N',17],['M',16],[',',54],['.',55],['/',56],['Shift','m32',2.75]]},
+  {x:0,y:6.5,keys:[['Ctrl','m1',1.25],['Win','m8',1.25],['Alt','m4',1.25],['Space',44,6.25],['AltGr','m64',1.25],['Win','m128',1.25],['Menu',101,1.25],['Ctrl','m16',1.25]]},
+  {x:15.5,y:1.25,keys:[['PrtSc',70],['ScrLk',71],['Pause',72]]},
+  {x:15.5,y:2.5,keys:[['Ins',73],['Home',74],['PgUp',75]]},
+  {x:15.5,y:3.5,keys:[['Del',76],['End',77],['PgDn',78]]},
+  {x:16.5,y:5.5,keys:[['↑',82]]},
+  {x:15.5,y:6.5,keys:[['←',80],['↓',81],['→',79]]},
+  {x:19,y:0,keys:[['Power','s129',4/3],['Sleep','s130',4/3],['Wake','s131',4/3]]},
+  {x:19,y:2.5,keys:[['Num',83],['/',84],['*',85],['-',86]]},
+  {x:19,y:3.5,keys:[['7',95],['8',96],['9',97],['+',87,1,2]]},
+  {x:19,y:4.5,keys:[['4',92],['5',93],['6',94]]},
+  {x:19,y:5.5,keys:[['1',89],['2',90],['3',91],['Enter',88,1,2]]},
+  {x:19,y:6.5,keys:[['0',98,2],['.',99]]},
+];
+const KB_W=23, KB_H=7.5;
+let pick=null; /* inline keyboard of the key being edited: {target, m, k}; m/k = not yet accepted */
+
+function buildKeyboard(){
+  const kb=$('kb');kb.innerHTML='';
+  for(const row of KB_ROWS){
+    let x=row.x;
+    for(const [label,code,w=1,h=1] of row.keys){
+      if(label!==null){
+        const b=document.createElement('button');b.type='button';b.className='kk';b.textContent=label;
+        if(typeof code==='string'&&code[0]==='s'){b.dataset.sys=code.slice(1);b.classList.add('sys');b.title=SYS[+code.slice(1)]+' (system power control)'}
+        else if(typeof code==='string'){b.dataset.mod=code.slice(1);b.classList.add('mod');b.title=MODS.find(([bit])=>bit==+code.slice(1))[1]}
+        else{b.dataset.code=code;b.title=HID[code]||label}
+        Object.assign(b.style,{left:`calc(${x} * var(--u))`,top:`calc(${row.y} * var(--u))`,
+          width:`calc(${w} * var(--u) - 4px)`,height:`calc(${h} * var(--u) - 4px)`});
+        b.onclick=()=>{
+          if(b.dataset.sys){const v=+b.dataset.sys;pick.s=pick.s===v?0:v;if(pick.s){pick.m=0;pick.k=0}} /* power keys stand alone */
+          else if(b.dataset.mod){pick.s=0;pick.m^=+b.dataset.mod}
+          else{pick.s=0;const c=+b.dataset.code;pick.k=pick.k===c?0:c}
+          refreshPicker();
+        };
+        kb.appendChild(b);
+      }
+      x+=w;
+    }
+  }
+  kb.style.width=`calc(${KB_W} * var(--u))`;kb.style.height=`calc(${KB_H} * var(--u))`;
+}
+
+/* pick = {target, m, k, s}: s = system usage (power keys) instead of modifiers + key */
+function pickFrom(a){return a.t===4?{target:a,m:0,k:0,s:a.u}:{target:a,m:a.m,k:a.k,s:0}}
+const pickChanged=()=>{if(!pick)return false;const o=pickFrom(pick.target);return pick.m!==o.m||pick.k!==o.k||pick.s!==o.s};
+
+function refreshPicker(){
+  const changed=pickChanged();
+  $('kbSel').innerHTML=comboHtml(pick.m,pick.k,pick.s)+(changed?' <span class="state">changed</span>':'');
+  $('kbIcons').hidden=!changed;
+  $('kbPanel').classList.toggle('changed',changed);
+  document.querySelectorAll('#kb .kk').forEach(b=>{
+    b.classList.toggle('on',b.dataset.sys?+b.dataset.sys===pick.s:b.dataset.mod?!!(pick.m&+b.dataset.mod):+b.dataset.code===pick.k);
+  });
+}
+
+/* ---------- media deck ---------- */
+let mpick=null; /* {target, u}: u = not yet accepted */
+const mediaChanged=()=>!!mpick&&mpick.u!==mpick.target.u;
+function refreshMedia(){
+  const f=MEDIA.find(([u])=>u===mpick.u), changed=mediaChanged();
+  $('mdSel').innerHTML=(f?`<kbd class="mkbd">${mediaIcon(f[2],' sm')}${esc(f[1])}</kbd>`:'<span class="none">nothing selected</span>')+(changed?' <span class="state">changed</span>':'');
+  $('mdIcons').hidden=!changed;
+  $('mdPanel').classList.toggle('changed',changed);
+  $('mdPanel').querySelectorAll('.mk').forEach(b=>{const on=+b.dataset.u===mpick.u;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+}
+function commitMedia(accept){
+  if(!mpick)return;
+  if(accept){mpick.target.u=mpick.u;renderPad()}else mpick.u=mpick.target.u;
+  refreshMedia();
+}
+
+/* ✓ accepts the change into the profile being edited (still saved with "Save profile"); ✗ restores */
+function commitPick(accept){
+  if(!pick)return;
+  const t=pick.target;
+  if(accept){
+    if(pick.s)Object.assign(t,{t:4,u:pick.s,m:0,k:0});
+    else Object.assign(t,{t:1,u:0,m:pick.m,k:pick.k});
+    renderPad();
+  }else pick=pickFrom(t);
+  refreshPicker();
+}
+
+/* with the keyboard image focused, pressing a combination on the real keyboard selects it (Esc discards) */
+document.addEventListener('keydown',e=>{
+  if(!pick||!$('kb')||!$('kb').contains(document.activeElement))return;
+  if(e.code==='Escape'){e.preventDefault();commitPick(false);return}
+  e.preventDefault();
+  const sideMods={ControlLeft:1,ShiftLeft:2,AltLeft:4,MetaLeft:8,ControlRight:16,ShiftRight:32,AltRight:64,MetaRight:128};
+  if(e.code in sideMods){
+    /* keep the side of the modifier that was actually pressed (e.g. right Ctrl, AltGr) */
+    const bit=sideMods[e.code], left=bit>=16?bit>>4:bit;
+    const flags=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0)|(e.metaKey?8:0);
+    pick.m=(flags&~left)|bit;pick.k=0;pick.s=0;
+  }else{
+    const code=codeFromEvent(e);if(code===null)return;
+    pick.m=(e.ctrlKey?1:0)|(e.shiftKey?2:0)|(e.altKey?4:0)|(e.metaKey?8:0);pick.k=code;pick.s=0;
+  }
+  refreshPicker();
+});
+
+/* map KeyboardEvent.code to a HID usage */
+function codeFromEvent(e){
+  const c=e.code;let m;
+  if((m=c.match(/^Key([A-Z])$/)))return 4+m[1].charCodeAt(0)-65;
+  if((m=c.match(/^Digit([0-9])$/)))return m[1]==='0'?39:29+(+m[1]);
+  if((m=c.match(/^F([0-9]+)$/))){const n=+m[1];return n<=12?57+n:103+n-12}
+  if((m=c.match(/^Numpad([0-9])$/)))return m[1]==='0'?98:88+(+m[1]);
+  const t={Enter:40,Escape:41,Backspace:42,Tab:43,Space:44,Minus:45,Equal:46,BracketLeft:47,BracketRight:48,Backslash:49,Semicolon:51,Quote:52,Backquote:53,Comma:54,Period:55,Slash:56,CapsLock:57,
+    PrintScreen:70,ScrollLock:71,Pause:72,Insert:73,Home:74,PageUp:75,Delete:76,End:77,PageDown:78,ArrowRight:79,ArrowLeft:80,ArrowDown:81,ArrowUp:82,NumLock:83,NumpadDivide:84,NumpadMultiply:85,
+    NumpadSubtract:86,NumpadAdd:87,NumpadEnter:88,NumpadDecimal:99,IntlBackslash:100,ContextMenu:101};
+  if(c in t)return t[c];
+  if(/^(Control|Shift|Alt|Meta)/.test(c))return 0;
+  return null;
+}
+
+function renderProfileFields(){
+  $('pName').value=edit.name;$('pColor').value=edit.color;$('pScan').value=edit.scan_khz;
+  $('pActivate').disabled=cur===cfg.global.active;
+}
+function renderAll(){renderTabs();renderProfileFields();renderPad();renderEditor()}
+
+function renderGlobal(){
+  const g=cfg.global;$('gDeb').value=g.debounce_ms;$('gBri').value=g.brightness;$('gSteps').value=g.enc_steps;$('gRev').checked=g.enc_reverse;
+  $('gBle').value=g.ble_name;$('gHost').value=g.hostname;$('gWifi').checked=g.wifi_enabled;
+  wnets=(g.wifi_networks||[]).map(n=>({ssid:n.ssid,has_pass:n.has_pass,pass:undefined,saved:true}));renderNets();
+  document.querySelectorAll('.hn').forEach(e=>e.textContent=g.hostname);
+}
+
+function showPressed(){
+  const m=status.pressed||0;
+  document.querySelectorAll('#pad [data-k]').forEach(d=>{const k=+d.dataset.k;d.classList.toggle('down',k<9||k===11?!!(m&(1<<k)):false)});
+}
+
+function chip(id,on,text){const c=$(id);c.classList.toggle('on',on);if(text)c.lastChild.textContent=text}
+
+async function poll(){
+  if(authShown()){setTimeout(poll,1000);return}
+  try{
+    const s=await api('/api/status');const prev=status;status=s;
+    if(prev.enc_ccw!==undefined){if(s.enc_ccw!==prev.enc_ccw)flashSeg(KEY_ENC_CCW);if(s.enc_cw!==prev.enc_cw)flashSeg(KEY_ENC_CW)}
+    /* estimated key-to-host latency of the active link (measured on the device + scan/interval model) */
+    const L=s.lat, latTxt=L?` ≈ ${fmtMs(L.avg_us)}`:'';
+    chip('cUsb',s.usb,'USB'+(s.link==='usb'?latTxt:''));
+    chip('cBle',s.ble,s.ble?'Bluetooth'+(s.link==='ble'?latTxt:''):(s.ble_enabled?'Bluetooth (waiting)':'Bluetooth off'));
+    const tip=L?(L.measured?`Estimated key-to-computer latency: ${fmtMs(L.avg_us)} on average, up to ${fmtMs(L.max_us)} (measured over the last ${L.n} key presses)`
+      :`Estimated latency ${fmtMs(L.avg_us)} – not measured yet, press a key`):'';
+    $('cUsb').title=s.link==='usb'?tip:'';$('cBle').title=s.link==='ble'?tip:'';
+    chip('cWifi',!!(s.ap||s.rssi),s.ap?'Setup AP':s.rssi?`${s.ssid} ${s.rssi} dBm`:'Wi-Fi');
+    if(s.ssid!==prev.ssid)renderNets();
+    if(cfg){const p=cfg.profiles[s.active];$('cProf').innerHTML=s.selecting?`<i style="background:${cfg.profiles[s.pending].color}"></i>Choosing… ${s.pending+1}`:`<i style="background:${p.color}"></i>Profile ${s.active+1}`;$('cProf').classList.add('on')}
+    if(cfg&&s.active!==cfg.global.active){cfg.global.active=s.active;renderTabs();renderProfileFields()}
+    $('setupSec').hidden=!s.ap;
+    showPressed();
+    $('stat').innerHTML=[['Firmware',s.fw],['Host link',s.link.toUpperCase()],['Latency',latRow(s)],['Scan rate',s.scan_khz+' kHz'],['Encoder detents',`◀ ${s.enc_ccw} / ${s.enc_cw} ▶`],
+      ['IP',s.ip],['Uptime',fmtUp(s.uptime)],['Free heap',(s.heap/1024).toFixed(0)+' KiB']].map(([a,b])=>`<tr><td>${a}</td><td>${esc(b)}</td></tr>`).join('');
+  }catch(e){chip('cWifi',false,'offline')}
+  setTimeout(poll,300);
+}
+function fmtMs(us){const ms=us/1000;return (ms<10?ms.toFixed(2):ms.toFixed(1))+' ms'}
+function latRow(s){
+  const L=s.lat;if(!L)return 'no computer connected';
+  if(!L.measured)return `≈ ${fmtMs(L.avg_us)} (model; press a key to measure)`;
+  let t=`≈ ${fmtMs(L.avg_us)} avg, ${fmtMs(L.max_us)} worst — device part measured ${fmtMs(L.dev_avg_us)} avg / ${fmtMs(L.dev_max_us)} max over ${L.n} presses`;
+  if(s.link==='ble')t+=`, + ${fmtMs(s.ble_itvl_us)} connection interval`;
+  return t;
+}
+function fmtUp(s){const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return `${h}h ${m}m ${s%60}s`}
+
+async function load(){
+  cfg=await api('/api/config');
+  edit=clone(cfg.profiles[cur]);renderAll();renderGlobal();
+}
+
+/* profile editing */
+for(const k of [1,2,4,8,16]){const o=document.createElement('option');o.value=k;o.textContent=`${k} kHz (${+(1000/k).toFixed(1)} µs)`;$('pScan').appendChild(o)}
+$('pName').oninput=e=>{edit.name=e.target.value};
+$('pColor').oninput=e=>{edit.color=e.target.value};
+$('pScan').onchange=e=>{edit.scan_khz=+e.target.value};
+$('pSave').onclick=async()=>{if(pickChanged())commitPick(true);if(mediaChanged())commitMedia(true);try{cfg.profiles[cur]=await post('/api/profile?i='+cur,edit);edit=clone(cfg.profiles[cur]);renderAll();msg('pMsg','Saved')}catch(e){msg('pMsg',e.message,1)}};
+$('pRevert').onclick=()=>{edit=clone(cfg.profiles[cur]);renderAll()};
+$('pDefault').onclick=async()=>{if(!confirm('Reset profile '+(cur+1)+' to defaults?'))return;try{cfg.profiles[cur]=await post('/api/profile?i='+cur,{reset:true});edit=clone(cfg.profiles[cur]);renderAll();msg('pMsg','Reset')}catch(e){msg('pMsg',e.message,1)}};
+$('pActivate').onclick=async()=>{try{await post('/api/active',{active:cur});cfg.global.active=cur;renderAll()}catch(e){msg('pMsg',e.message,1)}};
+
+/* device */
+$('gSave').onclick=async()=>{try{cfg.global=await post('/api/global',{debounce_ms:+$('gDeb').value,brightness:+$('gBri').value,enc_steps:+$('gSteps').value,
+  enc_reverse:$('gRev').checked,ble_name:$('gBle').value,hostname:$('gHost').value,wifi_enabled:$('gWifi').checked});renderGlobal();msg('gMsg','Saved')}catch(e){msg('gMsg',e.message,1)}};
+$('gBri').oninput=()=>{clearTimeout(window._bt);window._bt=setTimeout(()=>post('/api/global',{brightness:+$('gBri').value}),150)};
+
+/* wifi */
+let wnets=[];
+const X_ICON='<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function renderNets(){
+  const box=$('wNets');box.innerHTML='';
+  $('wCount').textContent=`(${wnets.length} of 5)`;
+  if(!wnets.length)box.innerHTML='<p class="hint" style="margin:0 0 10px">No networks saved.</p>';
+  wnets.forEach((n,i)=>{
+    const d=document.createElement('div');d.className='net';
+    const ph=n.saved?(n.has_pass?'•••••••• (unchanged)':'(open network)'):'Password (empty = open)';
+    d.innerHTML=`<input type="text" maxlength="32" placeholder="SSID" value="${esc(n.ssid)}">
+      <input type="password" maxlength="64" placeholder="${ph}" value="${n.pass===undefined?'':esc(n.pass)}">
+      <button type="button" class="ib del" title="Remove" aria-label="Remove ${esc(n.ssid)}">${X_ICON}</button>
+      ${status.ssid&&n.saved&&status.ssid===n.ssid?'<span class="live">● connected</span>':''}`;
+    const [s,pw,del]=d.querySelectorAll('input,button');
+    s.oninput=()=>{n.ssid=s.value;if(n.saved){n.saved=false}};
+    pw.oninput=()=>{n.pass=pw.value};
+    del.onclick=()=>{wnets.splice(i,1);renderNets()};
+    box.appendChild(d);
+  });
+  $('wAdd').disabled=wnets.length>=5;
+}
+function addNet(ssid){
+  if(wnets.length>=5)return msg('wMsg','At most 5 networks',1);
+  if(ssid&&wnets.some(n=>n.ssid===ssid))return msg('wMsg',`"${ssid}" is already in the list`,1);
+  wnets.push({ssid:ssid||'',has_pass:false,pass:'',saved:false});renderNets();
+  const ins=$('wNets').querySelectorAll('.net');const last=ins[ins.length-1].querySelectorAll('input');(ssid?last[1]:last[0]).focus();
+}
+$('wAdd').onclick=()=>addNet('');
+$('wScan').onclick=async()=>{$('wScan').disabled=true;try{const l=await api('/api/scan');$('wList').innerHTML='<option value="">– pick a network to add –</option>'+
+  l.map(n=>`<option value="${esc(n.ssid)}">${esc(n.ssid)} (${n.rssi} dBm${n.secure?', secured':''})</option>`).join('')}catch(e){msg('wMsg',e.message,1)}$('wScan').disabled=false};
+$('wList').onchange=e=>{if(e.target.value){addNet(e.target.value);e.target.value=''}};
+$('wSave').onclick=async()=>{
+  const list=wnets.filter(n=>n.ssid.trim());
+  const names=list.map(n=>n.ssid);if(new Set(names).size!==names.length)return msg('wMsg','Each network can be listed only once',1);
+  /* "pass" omitted = keep the stored password (only possible for a network that was saved under the same name) */
+  const body={networks:list.map(n=>(n.pass===undefined||(n.pass===''&&n.has_pass&&n.saved))?{ssid:n.ssid}:{ssid:n.ssid,pass:n.pass})};
+  try{const r=await post('/api/wifi',body);cfg.global.wifi_networks=r.wifi_networks;renderGlobal();
+    msg('wMsg',r.reboot?'Saved, rebooting to join the network…':'Saved')}catch(e){msg('wMsg',e.message,1)}};
+
+/* maintenance */
+$('mExport').onclick=async()=>{const c=await api('/api/config');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,1)],{type:'application/json'}));a.download='macropad-config.json';a.click()};
+$('mImport').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const c=JSON.parse(await f.text());
+  for(let i=0;i<9&&c.profiles&&i<c.profiles.length;i++)await post('/api/profile?i='+i,c.profiles[i]);
+  if(c.global){const g=Object.assign({},c.global);delete g.wifi_networks;await post('/api/global',g)}
+  await load();msg('mMsg','Imported')}catch(err){msg('mMsg','Import failed: '+err.message,1)}e.target.value=''};
+$('mForget').onclick=async()=>{if(confirm('Delete all Bluetooth pairings? Hosts must pair again.')){await post('/api/ble/forget',{});msg('mMsg','Pairings deleted')}};
+$('mReboot').onclick=async()=>{await post('/api/reboot',{});msg('mMsg','Rebooting…')};
+$('mFactory').onclick=async()=>{if(confirm('Erase all profiles, settings, Wi-Fi and pairings?')){await post('/api/factory',{});msg('mMsg','Reset, rebooting into setup mode…')}};
+$('mOta').onclick=async()=>{const f=$('mFw').files[0];if(!f)return msg('mMsg','Choose a .bin file',1);$('mOta').disabled=true;msg('mMsg','Uploading '+(f.size/1024).toFixed(0)+' KiB…');
+  try{await api('/api/ota',{method:'POST',body:f});msg('mMsg','Update installed, rebooting…')}catch(e){msg('mMsg','Update failed: '+e.message,1)}$('mOta').disabled=false};
+
+
+raw('/api/session').then(({j})=>{if(j.authed){document.body.classList.remove('boot');startApp()}else showAuth()}).catch(()=>showAuth());
+</script>
+</body>
+</html>
