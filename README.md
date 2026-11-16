@@ -1,5 +1,8 @@
 # MacroPad 3
 
+First of all - credits to the author of the original project: Kamil Sokalski. Project presented here: https://www.youtube.com/watch?v=nof_qYYGMVU.
+I just did not like original firmware, and that is my rework of it to match my requirements.
+
 ESP-IDF firmware for a programmable 9-key macropad with a rotary encoder, built on the **Waveshare ESP32-S3-Zero**. It works as a USB keyboard or a Bluetooth LE keyboard, and is configured from a web page served by the macropad itself.
 
 It replaces an earlier Arduino sketch. The pin assignment is the same, so existing hardware runs it unchanged.
