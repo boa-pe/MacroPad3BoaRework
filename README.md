@@ -54,13 +54,8 @@ idf.py -p COMx flash
 
 ### Flashing with ESP Web Tool
 
-When a firmware release is available, download its `.bin` files and `flash-addresses.txt` from the [latest GitHub release](https://github.com/boa-pe/MacroPad3BoaRework/releases/latest). There is no release yet; until one is published, generate the files locally from PowerShell:
-
-```powershell
-.\scripts\prepare-web-flasher.ps1
-```
-
-The script activates ESP-IDF using `IDF_PATH` or the `idf.currentSetup` path in `.vscode/settings.json`, builds the project, and copies all required `.bin` files plus their flash addresses into `build\web-flasher`. On a fresh ESP-IDF installation, run its `install.ps1 esp32` once if the script reports missing tools. Open the [ESP Web Tool](https://esptool.spacehuhn.com/) in a desktop Chromium-based browser, connect the board, and select its serial port. Add each `.bin` file and enter the corresponding address from `flash-addresses.txt`, then click **Program**. Keep the board connected until flashing completes.
+When a firmware release is available, download its `.zip` file from the [latest GitHub release](https://github.com/boa-pe/MacroPad3BoaRework/releases/latest) and unzip it.
+Open the [ESP Web Tool](https://esptool.spacehuhn.com/) in a desktop Chromium-based browser, connect the board, and select its serial port. Add each `.bin` file and enter the corresponding address from `flash-addresses.txt`, then click **Program**. Keep the board connected until flashing completes.
 
 **After the first flash, the native USB port is the keyboard.** The USB serial/JTAG port is gone, so later updates go one of two ways:
 
