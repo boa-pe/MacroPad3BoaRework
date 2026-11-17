@@ -4,7 +4,7 @@
     "clangd.arguments": [
       "--background-index",
       "--query-driver=**",
-      "--compile-commands-dir=d:\\Projects\\macropad3_rework\\build"
+      "--compile-commands-dir=build"
     ],
     "idf.flashType": "UART",
     "idf.port": "COM22",
